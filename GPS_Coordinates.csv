@@ -1,0 +1,101 @@
+City,State,Latitude,Longitude
+Honolulu,Hawaii,21.3,-157.8166667
+Seattle,Washington,47.60972222,-122.3330556
+Spokane,Washington,47.65888889,-117.425
+Portland,Oregon,45.52,-122.6819444
+Sacramento,California,38.55555556,-121.4688889
+Stockton,California,37.97555556,-121.3008333
+San Francisco,California,37.78333333,-122.4166667
+San Jose,California,37.33333333,-121.9
+Fresno,California,36.75,-119.7666667
+Bakersfield,California,35.36666667,-119.0166667
+Los Angeles,California,34.05,-118.25
+Oxnard,California,34.19138889,-119.1825
+San Bernardino,California,34.1,-117.3
+San Diego,California,32.715,-117.1625
+Las Vegas,Nevada,36.175,-115.1363889
+Boise,Idaho,43.61666667,-116.2
+Tucson,Arizona,32.22166667,-110.9263889
+Phoenix,Arizona,33.45,-112.0666667
+Albuquerque,New Mexico,35.11083333,-106.61
+Provo,Utah,40.24444444,-111.6608333
+Ogden,Utah,41.22777778,-111.9611111
+Salt Lake City,Utah,40.75,-111.8833333
+Colorado Springs,Colorado,38.83333333,-104.8166667
+Denver,Colorado,39.76185,-104.881105
+El Paso,Texas,31.79027778,-106.4233333
+McAllen,Texas,26.21638889,-98.23638889
+San Antonio,Texas,29.41666667,-98.5
+Houston,Texas,29.76277778,-95.38305556
+Austin,Texas,30.26666667,-97.73333333
+Dallas,Texas,32.77583333,-96.79666667
+New Orleans,Louisiana,29.95,-90.06666667
+Baton Rouge,Louisiana,30.45,-91.14
+Little Rock,Arkansas,34.73611111,-92.33111111
+Oklahoma City,Oklahoma,35.48222222,-97.535
+Tulsa,Oklahoma,36.13138889,-95.93722222
+Wichita,Kansas,37.68888889,-97.33611111
+Kansas City,Missouri,39.09972222,-94.57833333
+Saint Louis,Missouri,38.62722222,-90.19777778
+Omaha,Nebraska,41.25,-96
+Des Moines,Iowa,41.58783333,-93.61916667
+Minneapolis,Minnesota,44.98333333,-93.26666667
+Madison,Wisconsin,43.06666667,-89.4
+Milwaukee,Wisconsin,43.05,-87.95
+Chicago,Illinois,41.83694444,-87.68472222
+Indianapolis,Indiana,39.791,-86.148
+Grand Rapids,Michigan,42.96125,-85.65571944
+Detroit,Michigan,42.33138889,-83.04583333
+Toledo,Ohio,41.66555556,-83.57527778
+Akron,Ohio,41.07305556,-81.51777778
+Dayton,Ohio,39.75944444,-84.19166667
+Cincinnati,Ohio,39.1,-84.51666667
+Columbus,Ohio,39.98333333,-82.98333333
+Cleveland,Ohio,41.48222222,-81.66972222
+Louisville,Kentucky,38.22533333,-85.74166667
+Memphis,Tennessee,35.117365,-89.971068
+Knoxville,Tennessee,35.97277778,-83.94222222
+Nashville,Tennessee,36.16666667,-86.78333333
+Chattanooga,Tennessee,35.04555556,-85.26722222
+Jackson,Mississippi,32.29888889,-90.18472222
+Birmingham,Alabama,33.525,-86.813
+Melbourne,Florida,28.11666667,-80.63333333
+Lakeland,Florida,28.04111111,-81.95888889
+Fort Myers,Florida,26.61666667,-81.83333333
+Daytona,Florida,29.19,-81.08944444
+Sarasota,Florida,27.33722222,-82.53527778
+Tampa,Florida,27.96805556,-82.47638889
+Orlando,Florida,28.41583333,-81.29888889
+Miami,Florida,25.77527778,-80.20888889
+Jacksonville,Florida,30.33694444,-81.66138889
+Atlanta,Georgia,33.755,-84.39
+Augusta,Georgia,33.46666667,-81.96666667
+Columbia,South Carolina,34.00055556,-81.03472222
+Greenville,South Carolina,34.84444444,-82.38555556
+Charleston,South Carolina,32.78333333,-79.93333333
+Winston-Salem,North Carolina,36.10276389,-80.26049167
+Raleigh,North Carolina,35.76666667,-78.63333333
+Durham,North Carolina,35.98861111,-78.90722222
+Greensboro,North Carolina,36.08,-79.81944444
+Charlotte,North Carolina,35.22694444,-80.84333333
+Norfolk,Virginia,36.91666667,-76.2
+Richmond,Virginia,37.53333333,-77.46666667
+Pittsburgh,Pennsylvania,40.43972222,-79.97638889
+Scranton,Pennsylvania,41.41055556,-75.6675
+Allentown,Pennsylvania,40.60166667,-75.47722222
+Harrisburg,Pennsylvania,40.26972222,-76.87555556
+Philadelphia,Pennsylvania,39.95,-75.16666667
+Baltimore,Maryland,39.28333333,-76.61666667
+Washington,District of Columbia,38.90472222,-77.01638889
+Buffalo,New York,42.90472222,-78.84944444
+Rochester,New York,43.16555556,-77.61138889
+Albany,New York,42.6525,-73.75722222
+Syracuse,New York,43.04694444,-76.14444444
+New York,New York,40.7127,-74.0059
+Bridgeport,New York,43.15444444,-75.975
+New Haven,Connecticut,41.31,-72.92361111
+Hartford,Connecticut,41.7625,-72.67416667
+Providence,Rhode Island,41.82361111,-71.42222222
+Worcester,Massachusetts,42.26666667,-71.8
+Springfield,Massachusetts,42.112411,-72.547455
+Boston,Massachusetts,42.35805556,-71.06361111
