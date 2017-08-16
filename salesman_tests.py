@@ -11,6 +11,7 @@ import os
 import datetime as dt
 from salesman_models5 import get_clean_coords, KNN_salesman, random_route, brute_force_optimal_route
 from sklearn.utils import shuffle
+import gmplot
 
 def salesman_test(num_cities, iterations = 1):
 	col_names = ['Number of Cities','Optimal Route','KNN Route 1 Iteration', 'KNN Route 3 Iterations',
@@ -77,7 +78,7 @@ def salesman_test(num_cities, iterations = 1):
 			
 		delta = (stop - start).total_seconds()
 		
-		best_KNN_route = np.copy(KNN_route)
+		best_KNN_route = KNN_route.copy()
 		KNN_times.append(delta)
 		best_KNN_dist = KNN_dist
 		
@@ -85,7 +86,7 @@ def salesman_test(num_cities, iterations = 1):
 		scores.set_value(i,'KNN Time % of Optimal (1 IT)',sum(KNN_times) / scores.ix[i]['Optimal Time sec']) 
 		scores.set_value(i,'KNN Distance % of Optimal (1 IT)',best_KNN_dist / scores.ix[i]['Optimal Route Distance'])
 		
-		#9 more iterations run of KNN algorithm using same inputs
+		#9 more iterations of KNN algorithm using same inputs
 		for j in range(1,10):
 			start = dt.datetime.now()
 			KNN_route, KNN_dist = KNN_salesman(test_coords,test_names)
@@ -98,7 +99,7 @@ def salesman_test(num_cities, iterations = 1):
 			
 			if(KNN_dist < best_KNN_dist):
 				best_KNN_dist = KNN_dist
-				best_KNN_route = KNN_route
+				best_KNN_route = KNN_route.copy()
 			
 			#Performance recorded at 3, 5 and 10 iterations of (randomly initialized) algorithm
 			if(j == 2):
@@ -119,5 +120,34 @@ def salesman_test(num_cities, iterations = 1):
 		scores.to_csv('SalesmanTestResults.csv', header = col_names)
 	else:
 		scores.to_csv('SalesmanTestResults.csv', mode = 'a', header = False)
+	
+	return
+
+#Takes city coordinates and names as numpy array inputs, route as a list of city names, and outputs a map of the route as an html file	
+def map_route(coords, names, city_route, filename = 'KNNmap.html'):
+	
+	#Approximate geographic center of contiguous US
+	map_center = (39,-98)
+	
+	map_zoom = 5
+	
+	#first two parameters are latitude and longitude used for centering the map, and last parameter is the zoom level
+	gmap = gmplot.GoogleMapPlotter(map_center[0],map_center[1],map_zoom)
+	
+	#Unpack latitude and longitude coordinates into two separate tuples
+	coords_as_tuples = list(map(tuple,coords))
+	latitude, longitude = zip(*coords_as_tuples)
+	
+	#Obtain array index positions for the map coordinates of each city, in route order
+	route_order = list(map(lambda x: np.where(x == names)[0][0],city_route))
+	
+	#Re-arrange latitude and longitude coordinates to match route order
+	path_lat = np.array(latitude)[route_order]
+	path_lon = np.array(longitude)[route_order]
+	
+	gmap.plot(path_lat,path_lon,'cornflowerblue',edge_width = 4)
+	
+	#outputs map to html file in current directory
+	gmap.draw(filename)
 	
 	return

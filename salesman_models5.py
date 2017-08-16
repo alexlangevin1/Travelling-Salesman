@@ -1,6 +1,6 @@
 #File Name: salesman_models5.py
 #Date Created: 3 July 2017
-#Last Updated: 13 August 2017
+#Last Updated: 15 August 2017
 #Author: Alex Langevin
 #Description: Three algorithms to approach solution to travelling salesman problem along with support function
 #			  First algorithm brute forces the optimal route
@@ -76,10 +76,7 @@ def brute_force_optimal_route(city_coordinates, city_list):
 			best_route = list(route)
 			shortest_dist = dist
 	
-	city_route = []
-	
-	for city in best_route:
-		city_route.append(city_list[city][0])
+	city_route = list(map(lambda x: x[0],city_list[best_route]))
 		
 	return city_route, shortest_dist
 
@@ -107,10 +104,7 @@ def random_route(city_coordinates, city_list, iterations = 1):
 			best_route = list(route)
 			shortest_dist = dist
 	
-	city_route = []
-	
-	for city in best_route:
-		city_route.append(city_list[city][0])
+	city_route = list(map(lambda x: x[0],city_list[best_route]))
 	
 	return city_route, shortest_dist
 	
@@ -147,7 +141,7 @@ def KNN_salesman(city_coordinates, city_list):
 					continue
 				#As long as both cities have less than 2 edges, connect cities
 				if(adj_matrix[city,:].sum() < 2 and adj_matrix[min_col,:].sum() < 2):
-					create_point(adj_matrix,(city,min_col))
+					create_edge(adj_matrix,(city,min_col))
 				
 				#Proceed to next nearest neighbour
 				temp_dist_mat[city,min_col] = np.nan
@@ -190,12 +184,11 @@ def KNN_salesman(city_coordinates, city_list):
 		prev_pos = next_pos
 		next_pos = np.where(adj_matrix[next_pos,:] == adj_matrix[next_pos,:].max())[0][0]
 		route.append(next_pos)
-		erase_point(adj_matrix,(prev_pos,next_pos))
+		erase_edge(adj_matrix,(prev_pos,next_pos))
 		
-	city_route = []
-	
-	for city in route:
-		city_route.append(city_list[city][0])
+	city_route = list(map(lambda x: x[0],city_list[route]))
+		
+	assert(len(city_route) == num_cities + 1)
 	
 	return city_route, trace_path(route,dist_matrix)
 
@@ -206,13 +199,13 @@ def mult_clusters(adj_matrix, start_pos=0):
 	cluster = set([start_pos])
 	next_pos = np.where(temp_mat[start_pos,:] == temp_mat[start_pos,:].max())[0][0]
 	cluster.add(next_pos)
-	erase_point(temp_mat,(start_pos,next_pos))
+	erase_edge(temp_mat,(start_pos,next_pos))
 	prev_pos = next_pos
 	
 	while(temp_mat[start_pos,:].sum() > 0):
 		next_pos = np.where(temp_mat[next_pos,:] == temp_mat[next_pos,:].max())[0][0]
 		cluster.add(next_pos)
-		erase_point(temp_mat,(prev_pos,next_pos))
+		erase_edge(temp_mat,(prev_pos,next_pos))
 		prev_pos = next_pos
 
 	return (len(cluster) < adj_matrix.shape[0])
@@ -225,12 +218,12 @@ def is_connected_graph(cluster_mat,start_pos):
 	else:
 		temp_mat = np.copy(cluster_mat)
 		next_pos = np.where(temp_mat[start_pos,:] == temp_mat[start_pos,:].max())[0][0]
-		erase_point(temp_mat,(start_pos,next_pos))
+		erase_edge(temp_mat,(start_pos,next_pos))
 		prev_pos = next_pos
 		
 		while(temp_mat[next_pos,:].sum() > 0):
 			next_pos = np.where(temp_mat[next_pos,:] == temp_mat[next_pos,:].max())[0][0]
-			erase_point(temp_mat,(prev_pos,next_pos))
+			erase_edge(temp_mat,(prev_pos,next_pos))
 			prev_pos = next_pos
 		
 		if(next_pos == start_pos):
@@ -253,13 +246,13 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 		cluster = set([start_pos])
 		next_pos = np.where(temp_mat[start_pos,:] == temp_mat[start_pos,:].max())[0][0]
 		cluster.add(next_pos)
-		erase_point(temp_mat,(start_pos,next_pos))
+		erase_edge(temp_mat,(start_pos,next_pos))
 		prev_pos = next_pos
 		
 		while(temp_mat[start_pos,:].sum() > 0):
 			next_pos = np.where(temp_mat[next_pos,:] == temp_mat[next_pos,:].max())[0][0]
 			cluster.add(next_pos)
-			erase_point(temp_mat,(prev_pos,next_pos))
+			erase_edge(temp_mat,(prev_pos,next_pos))
 			prev_pos = next_pos
 		
 		cities_remaining = cities_remaining - cluster
@@ -294,12 +287,18 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 		#create SortedLists (1 for each cluster) containing details of each possible inter-cluster edge (in ascending order by distance)
 		#each SortedList element has the format (distance,(start city label, end city label),(start city cluster, end city cluster))
 		for cluster in cluster_list:
+		
 			edges = SortedList()
+			
 			for vertex in cluster:
 				for destination in range(vertex+1,adj_matrix.shape[1]):
-					if(cluster_dict[vertex] != cluster_dict[destination]):
-						edge = (dist_matrix[vertex,destination],(vertex,destination),(cluster_dict[vertex],cluster_dict[destination]))
-						edges.add(edge)
+					starting_cluster = cluster_dict[vertex]
+					destination_cluster = cluster_dict[destination]
+					
+					if(starting_cluster != destination_cluster):
+						inter_cluster_edge = (dist_matrix[vertex,destination],(vertex,destination),(cluster_dict[vertex],cluster_dict[destination]))
+						edges.add(inter_cluster_edge)
+						
 			edge_info.append(edges)
 	
 		while(new_edges < num_clusters):
@@ -308,44 +307,61 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 			long_edge = (0,0)
 			for cluster in edge_info:
 				try:
-					if(cluster[0][0] > long_edge[0]):
+					length_of_min_edge = cluster[0][0] 
+					if(length_of_min_edge > long_edge[0]):
 						long_edge = cluster[0]
 				except:
 					continue
 					
 			print(long_edge)
 			
-			if((cluster_adj_matrix[long_edge[2][0],:].sum() < 2 and cluster_adj_matrix[long_edge[2][1],:].sum() < 2) and (cluster_adj_matrix[long_edge[2][0],long_edge[2][1]] == 0)):
-				if((adj_matrix[long_edge[1][0],long_edge[1][1]] == 0) and (adj_matrix[long_edge[1][0],:].sum() < 3 and adj_matrix[long_edge[1][1],:].sum() < 3)):
-					create_point(adj_matrix,(long_edge[1][0],long_edge[1][1]))
-					erase_point(deletable_matrix,(long_edge[1][0],long_edge[1][1]))
-					create_point(cluster_adj_matrix,(long_edge[2][0],long_edge[2][1]))
+			cluster_pairs_not_fully_connected = cluster_adj_matrix[long_edge[2][0],:].sum() < 2 and cluster_adj_matrix[long_edge[2][1],:].sum() < 2
+			no_existing_edge_between_cluster_pairs = cluster_adj_matrix[long_edge[2][0],long_edge[2][1]] == 0
+				
+			if(cluster_pairs_not_fully_connected and no_existing_edge_between_cluster_pairs):
+				
+				no_edge_in_place = adj_matrix[long_edge[1][0],long_edge[1][1]] == 0
+				vertices_not_yet_stitched = adj_matrix[long_edge[1][0],:].sum() < 3 and adj_matrix[long_edge[1][1],:].sum() < 3
+				
+				if(no_edge_in_place and vertices_not_yet_stitched):
+					create_edge(adj_matrix,(long_edge[1][0],long_edge[1][1]))
+					erase_edge(deletable_matrix,(long_edge[1][0],long_edge[1][1]))
+					create_edge(cluster_adj_matrix,(long_edge[2][0],long_edge[2][1]))
 					added_edges.append(long_edge)
 				
-					if(is_connected_graph(cluster_adj_matrix,long_edge[2][0]) and cluster_adj_matrix.sum() < 2*cluster_adj_matrix.shape[0]):
-						erase_point(adj_matrix,(long_edge[1][0],long_edge[1][1]))
-						create_point(deletable_matrix,(long_edge[1][0],long_edge[1][1]))
-						erase_point(cluster_adj_matrix,(long_edge[2][0],long_edge[2][1]))
+					clusters_not_fully_stitched = cluster_adj_matrix.sum() < 2 * cluster_adj_matrix.shape[0]
+					
+					if(is_connected_graph(cluster_adj_matrix,long_edge[2][0]) and clusters_not_fully_stitched):
+						erase_edge(adj_matrix,(long_edge[1][0],long_edge[1][1]))
+						create_edge(deletable_matrix,(long_edge[1][0],long_edge[1][1]))
+						erase_edge(cluster_adj_matrix,(long_edge[2][0],long_edge[2][1]))
 						added_edges.remove(long_edge)
 					else:
 						new_edges += 1
 			edge_info[long_edge[2][0]].remove(edge_info[long_edge[2][0]][0])
-	#two cluster case
+			
+	#two cluster case - simple min distance edge formation between inter-cluster vertices
 	else:
 		edges = SortedList()
 		for row in range(adj_matrix.shape[0]):
 			for col in range(row+1,adj_matrix.shape[0]):
-				if(cluster_dict[row] != cluster_dict[col]):
+				starting_cluster = cluster_dict[row]
+				destination_cluster = cluster_dict[col]
+				
+				if(starting_cluster != destination_cluster):
 					edge = (dist_matrix[row,col],(row,col),(cluster_dict[row],cluster_dict[col]))
 					edges.add(edge)
 			
 		while(new_edges < num_clusters):
 			min_edge = edges[0]
 			print(min_edge)
-			if(adj_matrix[min_edge[1][0],:].sum() < 3 and adj_matrix[min_edge[1][1],:].sum() < 3):
-				create_point(adj_matrix,(min_edge[1][0],min_edge[1][1]))
-				erase_point(deletable_matrix,(min_edge[1][0],min_edge[1][1]))
-				create_point(cluster_adj_matrix,(min_edge[2][0],min_edge[2][1]))
+			
+			vertices_not_yet_stitched = adj_matrix[min_edge[1][0],:].sum() < 3 and adj_matrix[min_edge[1][1],:].sum() < 3
+			
+			if(vertices_not_yet_stitched):
+				create_edge(adj_matrix,(min_edge[1][0],min_edge[1][1]))
+				erase_edge(deletable_matrix,(min_edge[1][0],min_edge[1][1]))
+				create_edge(cluster_adj_matrix,(min_edge[2][0],min_edge[2][1]))
 				added_edges.append(min_edge)
 				new_edges += 1
 			edges.remove(min_edge)	
@@ -373,8 +389,11 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 			#In each cluster, compile list of vertices of degree 3, along with their (within-cluster) edges
 			for cluster in temp_cluster_list:
 				three_edge_cities = []
+				
+				#Skip any clusters where all vertices have degree 2
 				if(count_edges(cluster,adj_matrix) == 2 * len(cluster)):
 					continue
+					
 				for vertex in cluster:
 					if(adj_matrix[vertex,:].sum() > 2):
 						connected_cities = set()
@@ -394,12 +413,19 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 				#3. For the cluster as a whole select the edge swap that results in the minimum distance change for the graph
 				for triangle in three_edge_cities:
 					print(triangle)
-					if(dist_matrix[triangle[1][0],triangle[1][1]] - dist_matrix[triangle[0],triangle[1][0]] < dist_matrix[edge_to_add[0],edge_to_add[1]] - dist_matrix[edge_to_delete[0],edge_to_delete[1]]):
+					hypothetical_change_in_route_dist = dist_matrix[triangle[1][0],triangle[1][1]] - dist_matrix[triangle[0],triangle[1][0]]
+					current_min_change_in_route_dist = dist_matrix[edge_to_add[0],edge_to_add[1]] - dist_matrix[edge_to_delete[0],edge_to_delete[1]]
+					
+					if(hypothetical_change_in_route_dist < current_min_change_in_route_dist):
 						min_dist_swap = triangle
 						edge_to_add = min_dist_swap[1]
 						edge_to_delete = (min_dist_swap[0],min_dist_swap[1][0])
 						make_non_deletable = (min_dist_swap[0],min_dist_swap[1][1])
-					if(dist_matrix[triangle[1][0],triangle[1][1]] - dist_matrix[triangle[0],triangle[1][1]] < dist_matrix[edge_to_add[0],edge_to_add[1]] - dist_matrix[edge_to_delete[0],edge_to_delete[1]]):
+						
+					hypothetical_change_in_route_dist = dist_matrix[triangle[1][0],triangle[1][1]] - dist_matrix[triangle[0],triangle[1][1]]
+					current_min_change_in_route_dist = dist_matrix[edge_to_add[0],edge_to_add[1]] - dist_matrix[edge_to_delete[0],edge_to_delete[1]]
+					
+					if(hypothetical_change_in_route_dist < current_min_change_in_route_dist):
 						min_dist_swap = triangle
 						edge_to_add = min_dist_swap[1]
 						edge_to_delete = (min_dist_swap[0],min_dist_swap[1][1])
@@ -408,11 +434,11 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 				#Result of edge swap is that one outer(connecting) vertex has effectively been removed from the cluster
 				#The degree 3 vertex has been shifted into the smaller cluster, where the first deletion rule can be re-evaluated
 				#Continue the cluster shrinking process until all required edges have been pared
-				create_point(adj_matrix,edge_to_add)
-				erase_point(adj_matrix,edge_to_delete)
-				create_point(deletable_edges,edge_to_add)
-				erase_point(deletable_edges,edge_to_delete)
-				erase_point(deletable_edges,make_non_deletable)
+				create_edge(adj_matrix,edge_to_add)
+				erase_edge(adj_matrix,edge_to_delete)
+				create_edge(deletable_edges,edge_to_add)
+				erase_edge(deletable_edges,edge_to_delete)
+				erase_edge(deletable_edges,make_non_deletable)
 				cluster.remove(min_dist_swap[0])
 					
 	return adj_matrix
@@ -429,10 +455,12 @@ def uncross(city_coordinates,adj_matrix):
 			#Exclude any edges that share a vertex from the swapping rule
 			if((pair[0][0] in pair[1]) or (pair[0][1] in pair[1])):
 				continue
+			
 			point1 = city_coordinates[pair[0][0],:]
 			point2 = city_coordinates[pair[0][1],:]
 			point3 = city_coordinates[pair[1][0],:]
 			point4 = city_coordinates[pair[1][1],:]
+			
 			if(is_line_intersect(point1,point2,point3,point4)):
 				print("Pair needs swapping:",pair)
 				adj_matrix = swap(adj_matrix,pair)
@@ -477,7 +505,7 @@ def is_line_intersect(point1,point2,point3,point4):
 	try:
 		solution = np.linalg.solve(lines,b)
 		
-		#Check whether edge intersect solution falls within the vertex coordinates
+		#Check whether edge intersect solution falls within the bounds of the vertex coordinates
 		if(not(x1_min <= solution[0,0] <= x1_max and x2_min <= solution[0,0] <= x2_max)):
 			intersect = False
 			
@@ -496,20 +524,20 @@ def swap(adj_matrix,line_pair):
 	x2 = line_pair[1][0]
 	y2 = line_pair[1][1]
 	
-	erase_point(adj_matrix,(x1,y1))
-	erase_point(adj_matrix,(x2,y2))
+	erase_edge(adj_matrix,(x1,y1))
+	erase_edge(adj_matrix,(x2,y2))
 	
 	#Swap edges in whichever order keeps the graph connected
 	if(adj_matrix[x1,x2] == 0 and adj_matrix[y1,y2] == 0):
-		create_point(adj_matrix,(x1,x2))
-		create_point(adj_matrix,(y1,y2))
+		create_edge(adj_matrix,(x1,x2))
+		create_edge(adj_matrix,(y1,y2))
 		if(mult_clusters(adj_matrix)):
-			erase_point(adj_matrix,(x1,x2))
-			erase_point(adj_matrix,(y1,y2))
+			erase_edge(adj_matrix,(x1,x2))
+			erase_edge(adj_matrix,(y1,y2))
 	
 	if(adj_matrix.sum() < 2 * adj_matrix.shape[0]):
-		create_point(adj_matrix,(x1,y2))
-		create_point(adj_matrix,(x2,y1))
+		create_edge(adj_matrix,(x1,y2))
+		create_edge(adj_matrix,(x2,y1))
 		
 	return adj_matrix
 	
@@ -532,13 +560,13 @@ def list_of_points(adj_matrix):
 	return pairs
 	
 #Support function to remove edge from an adjacency matrix
-def erase_point(adj_matrix,point):
+def erase_edge(adj_matrix,point):
 	adj_matrix[point[0],point[1]] = 0
 	adj_matrix[point[1],point[0]] = 0
 	return
 
 #Support function to add edge to an adjacency matrix	
-def create_point(adj_matrix,point):
+def create_edge(adj_matrix,point):
 	adj_matrix[point[0],point[1]] = 1
 	adj_matrix[point[1],point[0]] = 1
 	return
@@ -558,13 +586,13 @@ def delete_edges(adj_matrix, deletable_edges):
 		for cell in row:
 			if((cell == 1) and (adj_matrix[row_index,:].sum() > 2) and (adj_matrix[col_index,:].sum() > 2)):
 				to_delete.append((row_index,col_index))
-				erase_point(deletable_edges,(row_index,col_index))
+				erase_edge(deletable_edges,(row_index,col_index))
 			col_index += 1
 		row_index += 1
 	
 	print("3-edge connections to delete:",to_delete)
 	for edge in to_delete:
-		erase_point(adj_matrix,(edge[0],edge[1]))
+		erase_edge(adj_matrix,(edge[0],edge[1]))
 		
 	return adj_matrix
 	
