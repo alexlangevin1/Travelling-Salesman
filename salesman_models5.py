@@ -1,6 +1,6 @@
 #File Name: salesman_models5.py
 #Date Created: 3 July 2017
-#Last Updated: 15 August 2017
+#Last Updated: 21 August 2017
 #Author: Alex Langevin
 #Description: Three algorithms to approach solution to travelling salesman problem along with support function
 #			  First algorithm brute forces the optimal route
@@ -18,13 +18,22 @@ import math
 import itertools as it
 from sortedcontainers import SortedList
 
-#Reads in .csv with GPS coordinates for 100 largest US cities, and returns numpy arrays of city names and coords
+#Reads in csv with GPS coordinates for 100 largest US cities, and returns numpy arrays of city names and coords
 def get_clean_coords():
 	data = pd.read_csv('GPS_Coordinates.csv')
 	city_coords = data.ix[:,['Latitude','Longitude']].as_matrix()
 	city_name = data.ix[:,['City']].as_matrix()
 	
 	return city_coords, city_name
+	
+#Reads in user-specified text file with TSPLIB data (assumed EUC_2D format) and returns numpy array of (X,Y) coords
+def get_euclidean_coords(filename):
+
+	#Assumed TSPLIB data in same format as http://www.math.uwaterloo.ca/tsp/world/countries.html
+	data = pd.read_table(filename,sep = ' ', header = None, index_col = 0, skiprows = 7).dropna(axis=0)
+	coords = data.as_matrix()
+	
+	return coords
 	
 #Reads in city route order (list of ints) and city distance matrix, returns total trip distance (km)
 def trace_path(route,distance_matrix):
@@ -35,27 +44,47 @@ def trace_path(route,distance_matrix):
 
 	return distance
 
-def haversine(angle_rads):
-	return (1-math.cos(angle_rads))/2
+def coordinate_convert(lat_degrees,long_degrees):
+	deg = int(round(lat_degrees))
+	minutes = lat_degrees - deg
+	lat_rad = math.pi * (deg + 5.0 * minutes / 3.0) / 180
+	
+	deg = int(round(long_degrees))
+	minutes = long_degrees - deg
+	lon_rad = math.pi * (deg + 5.0 * minutes / 3.0) / 180
 
-#Takes in numpy array of coordinates (lat,long) and returns a matrix of city-city km distances
+	return lat_rad, lon_rad
+
+#Takes in numpy array of coordinates (lat,long) and returns a matrix of city-city km distances (as per TSPLIB geographic distance calcs)
 def get_distance_matrix(city_coordinates):
 	distance = np.zeros((city_coordinates.shape[0],city_coordinates.shape[0]))
-	earth_radius_km = 6371
+	earth_radius_km = 6378.388
+	
 	
 	for row in range(distance.shape[0]):
 		for col in range(distance.shape[0]):
-			lat1 = math.radians(city_coordinates[row,0])
-			lon1 = math.radians(city_coordinates[row,1])
-			lat2 = math.radians(city_coordinates[col,0])
-			lon2 = math.radians(city_coordinates[col,1])
-			delta_lat = lat2 - lat1
-			delta_lon = lon2 - lon1
+			lat1, lon1 = coordinate_convert(city_coordinates[row,0],city_coordinates[row,1])
+			lat2, lon2 = coordinate_convert(city_coordinates[col,0],city_coordinates[col,1])
+			q1 = math.cos(lon1 - lon2)
+			q2 = math.cos(lat1 - lat2)
+			q3 = math.cos(lat1 + lat2)
 			
-			#Converts latitude and longitude to km distance (straight line) using haversine formula
-			hav = haversine(delta_lat) + math.cos(lat1)*math.cos(lat2)*haversine(delta_lon)
-			distance[row][col] = 2 * earth_radius_km * math.asin(math.sqrt(hav))
+			distance[row][col] = int(earth_radius_km * math.acos(0.5 * ((1.0 + q1) * q2 - (1.0 - q1) * q3)) + 1.0)
 			
+	return distance
+
+#Takes as input an array of (X,Y) coordinates and returns a matrix with the Euclidean distance between points
+#Functionality added to accomodate larger datasets from TSPLIB
+def get_euclidean_matrix(X_Y_coords):
+	distance = np.zeros((X_Y_coords.shape[0],X_Y_coords.shape[0]))
+	
+	for row in range(distance.shape[0]):
+		for col in range(distance.shape[0]):
+			x_delta = X_Y_coords[row,0] - X_Y_coords[col,0]
+			y_delta = X_Y_coords[row,1] - X_Y_coords[col,1]
+			
+			distance[row][col] = int(round(math.sqrt(x_delta**2 + y_delta**2)))
+	
 	return distance
 	
 #Using numpy arrays of city names and coords, iterates through every possible route permutation
@@ -111,9 +140,13 @@ def random_route(city_coordinates, city_list, iterations = 1):
 #Taking a city list and coordinates as inputs, connects vertices at random under a K-NN type rule until each vertex has degree 2
 #Graph is then cleaned up to form a Hamiltonian circuit, which approximates (possibly equals) and returns optimal route
 #Assumed first city in list is the starting (and ending) vertex
-def KNN_salesman(city_coordinates, city_list):
+def KNN_salesman(city_coordinates, city_list = None, data_type = 'GEO'):
 
-	dist_matrix = get_distance_matrix(city_coordinates)
+	#Distance matrix generation depends on data format - 'GEO' for geographic coordinates, and 'EUC_2D' for Euclidean (X,Y) coordinates
+	if(data_type == 'EUC_2D'):
+		dist_matrix = get_euclidean_matrix(city_coordinates)
+	else:
+		dist_matrix = get_distance_matrix(city_coordinates)
 	
 	#adjacency matrix - to be populated with 1s representing edges between vertices (i.e. connections between cities)
 	adj_matrix = np.zeros((dist_matrix.shape[0],dist_matrix.shape[1]))
@@ -126,7 +159,7 @@ def KNN_salesman(city_coordinates, city_list):
 		city_index = list(np.random.permutation(range(num_cities)))
 		temp_dist_mat = np.copy(dist_matrix)
 		
-		#Removes zero values to facilitate nearest-neighbour loop below
+		#Removes zero values to facilitate nearest-neighbor loop below
 		for same_city in range(temp_dist_mat.shape[0]):
 			temp_dist_mat[same_city,same_city] = np.nan
 		
@@ -134,7 +167,7 @@ def KNN_salesman(city_coordinates, city_list):
 		while(np.isnan(temp_dist_mat).sum() < temp_dist_mat.shape[0]**2):
 			for city in city_index:
 				#Return column index for first instance of min distance connection for selected city
-				#i.e. nearest valid neighbour
+				#i.e. nearest valid neighbor
 				try:
 					min_col = np.where(temp_dist_mat[city,:] == np.nanmin(temp_dist_mat[city,:]))[0][0]
 				except:
@@ -143,7 +176,7 @@ def KNN_salesman(city_coordinates, city_list):
 				if(adj_matrix[city,:].sum() < 2 and adj_matrix[min_col,:].sum() < 2):
 					create_edge(adj_matrix,(city,min_col))
 				
-				#Proceed to next nearest neighbour
+				#Proceed to next nearest neighbor
 				temp_dist_mat[city,min_col] = np.nan
 				temp_dist_mat[min_col,city] = np.nan
 		
@@ -151,7 +184,7 @@ def KNN_salesman(city_coordinates, city_list):
 			if(adj_matrix.sum() == 2 * dist_matrix.shape[0]):
 				break
 		
-		#if all options have been exhausted without each vertex obtaining degree 2, then start again with a new ordering
+		#If all options have been exhausted without each vertex obtaining degree 2, then start again with a new ordering
 		if(np.isnan(temp_dist_mat).sum() == temp_dist_mat.shape[0]**2 and adj_matrix.sum() < 2 * adj_matrix.shape[0]):
 			adj_matrix = np.zeros((dist_matrix.shape[0],dist_matrix.shape[1]))
 			continue
@@ -161,9 +194,10 @@ def KNN_salesman(city_coordinates, city_list):
 		#If the graph is disconnected after the K-NN step, the cycles are stitched together and edges pared
 		if(mult_clusters(adj_matrix)):
 			print("Stitching")
-			adj_matrix = stitch(adj_matrix,dist_matrix,city_coordinates)
+			adj_matrix, cluster_count = stitch(adj_matrix,dist_matrix,city_coordinates)
 			print("done stitching and deletions")
-	
+		else:
+			cluster_count = 1
 	print("uncrossing")
 	
 	#Any crossing points in the planar graph are removed to form a Hamiltonian circuit
@@ -185,12 +219,14 @@ def KNN_salesman(city_coordinates, city_list):
 		next_pos = np.where(adj_matrix[next_pos,:] == adj_matrix[next_pos,:].max())[0][0]
 		route.append(next_pos)
 		erase_edge(adj_matrix,(prev_pos,next_pos))
-		
-	city_route = list(map(lambda x: x[0],city_list[route]))
-		
-	assert(len(city_route) == num_cities + 1)
 	
-	return city_route, trace_path(route,dist_matrix)
+	if(city_list is None):
+		city_route = route	
+	else:
+		city_route = list(map(lambda x: x[0],city_list[route]))
+		assert(len(city_route) == num_cities + 1)
+		
+	return city_route, trace_path(route,dist_matrix), cluster_count
 
 #Boolean support function returns True if graph is disconnected	
 #i.e. adjacency matrix contains multiple connected subgraphs
@@ -211,7 +247,7 @@ def mult_clusters(adj_matrix, start_pos=0):
 	return (len(cluster) < adj_matrix.shape[0])
 
 #Boolean support function returns True if previously disconnected graph is now connected
-#Examines whether edges exist between what were originally connected subgraphs
+#Examines whether edges exist between what were originally separate subgraphs
 def is_connected_graph(cluster_mat,start_pos):
 	if(cluster_mat.sum() == 0):
 		connected = False
@@ -441,7 +477,7 @@ def stitch(adj_matrix,dist_matrix,city_coordinates):
 				erase_edge(deletable_edges,make_non_deletable)
 				cluster.remove(min_dist_swap[0])
 					
-	return adj_matrix
+	return adj_matrix, num_clusters
 	
 #Support function removes any crossing points from a connected graph, returning a Hamiltonian circuit
 def uncross(city_coordinates,adj_matrix):

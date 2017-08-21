@@ -1,9 +1,9 @@
 #File Name: salesman_tests.py
 #Author: Alex Langevin
 #Date Created: 9 August 2017
-#Last Updated: 12 August 2017
+#Last Updated: 21 August 2017
 #Description: Function to run performance tests of KNN salesman algorithm a user-defined number of times.
-#			  Algorithm compared to optimal route calculation and random route selection. Results output to .csv file
+#			  Algorithm compared to optimal route calculation and random route selection. Results output to csv file.
 
 import pandas as pd
 import numpy as np
@@ -15,12 +15,14 @@ import gmplot
 
 def salesman_test(num_cities, iterations = 1):
 	col_names = ['Number of Cities','Optimal Route','KNN Route 1 Iteration', 'KNN Route 3 Iterations',
-	'KNN Route 5 Iterations', 'KNN Route 10 Iterations', 'Random Route 10 Iterations', 'Random Route 100 Iterations',
+	'KNN Route 5 Iterations', 'KNN Route 10 Iterations','KNN Route 25 Iterations', 'Random Route 10 Iterations', 'Random Route 100 Iterations',
 	'Optimal Time sec', 'KNN Time % of Optimal (1 IT)','KNN Time % of Optimal (3 IT)', 'KNN Time % of Optimal (5 IT)',
-	'KNN Time % of Optimal (10 IT)', 'Random Route Time % of Optimal (10 IT)', 'Random Route Time % of Optimal (100 IT)',
-	'Optimal Route Distance', 'KNN Distance % of Optimal (1 IT)', 'KNN Distance % of Optimal (3 IT)',
-	'KNN Distance % of Optimal (5 IT)', 'KNN Distance % of Optimal (10 IT)', 'Random Route Distance % of Optimal (10 IT)',
-	'Random Route Distance % of Optimal (100 IT)']
+	'KNN Time % of Optimal (10 IT)','KNN Time % of Optimal (25 IT)', 'Random Route Time % of Optimal (10 IT)', 'Random Route Time % of Optimal (100 IT)',
+	'Optimal Route Distance', 'KNN Distance % of Optimal (1 IT)', 'KNN Distance % of Optimal (3 IT)','KNN Distance % of Optimal (5 IT)',
+	'KNN Distance % of Optimal (10 IT)','KNN Distance % of Optimal (25 IT)', 'Random Route Distance % of Optimal (10 IT)',
+	'Random Route Distance % of Optimal (100 IT)','Cluster count after KNN step (best route) (1 IT)',
+	'Cluster count after KNN step (best route) (3 IT)','Cluster count after KNN step (best route) (5 IT)',
+	'Cluster count after KNN step (best route) (10 IT)','Cluster count after KNN step (best route) (25 IT)']
 	
 	row_index = list(range(iterations))
 	
@@ -73,7 +75,7 @@ def salesman_test(num_cities, iterations = 1):
 		
 		KNN_times = []
 		start = dt.datetime.now()
-		KNN_route, KNN_dist = KNN_salesman(test_coords,test_names)
+		KNN_route, KNN_dist, KNN_clusters = KNN_salesman(test_coords,test_names)
 		stop = dt.datetime.now()
 			
 		delta = (stop - start).total_seconds()
@@ -81,15 +83,17 @@ def salesman_test(num_cities, iterations = 1):
 		best_KNN_route = KNN_route.copy()
 		KNN_times.append(delta)
 		best_KNN_dist = KNN_dist
+		best_route_num_clusters = KNN_clusters
 		
 		scores.set_value(i,'KNN Route 1 Iteration',best_KNN_route)
 		scores.set_value(i,'KNN Time % of Optimal (1 IT)',sum(KNN_times) / scores.ix[i]['Optimal Time sec']) 
 		scores.set_value(i,'KNN Distance % of Optimal (1 IT)',best_KNN_dist / scores.ix[i]['Optimal Route Distance'])
+		scores.set_value(i,'Cluster count after KNN step (best route) (1 IT)',best_route_num_clusters)
 		
-		#9 more iterations of KNN algorithm using same inputs
-		for j in range(1,10):
+		#24 more iterations of KNN algorithm using same inputs
+		for j in range(1,25):
 			start = dt.datetime.now()
-			KNN_route, KNN_dist = KNN_salesman(test_coords,test_names)
+			KNN_route, KNN_dist, KNN_clusters = KNN_salesman(test_coords,test_names)
 			stop = dt.datetime.now()
 			
 			delta = (stop - start).total_seconds()
@@ -100,22 +104,31 @@ def salesman_test(num_cities, iterations = 1):
 			if(KNN_dist < best_KNN_dist):
 				best_KNN_dist = KNN_dist
 				best_KNN_route = KNN_route.copy()
+				best_route_num_clusters = KNN_clusters
 			
 			#Performance recorded at 3, 5 and 10 iterations of (randomly initialized) algorithm
 			if(j == 2):
 				scores.set_value(i,'KNN Route 3 Iterations', best_KNN_route)
 				scores.set_value(i,'KNN Time % of Optimal (3 IT)', sum(KNN_times) / scores.ix[i]['Optimal Time sec'])
 				scores.set_value(i,'KNN Distance % of Optimal (3 IT)', best_KNN_dist / scores.ix[i]['Optimal Route Distance'])
+				scores.set_value(i,'Cluster count after KNN step (best route) (3 IT)',best_route_num_clusters)
 			elif(j == 4):
 				scores.set_value(i,'KNN Route 5 Iterations', best_KNN_route)
 				scores.set_value(i,'KNN Time % of Optimal (5 IT)',sum(KNN_times) / scores.ix[i]['Optimal Time sec'])
 				scores.set_value(i,'KNN Distance % of Optimal (5 IT)',best_KNN_dist / scores.ix[i]['Optimal Route Distance'])
+				scores.set_value(i,'Cluster count after KNN step (best route) (5 IT)',best_route_num_clusters)
 			elif(j == 9):
 				scores.set_value(i,'KNN Route 10 Iterations',best_KNN_route)
 				scores.set_value(i,'KNN Time % of Optimal (10 IT)',sum(KNN_times) / scores.ix[i]['Optimal Time sec'])
 				scores.set_value(i,'KNN Distance % of Optimal (10 IT)', best_KNN_dist / scores.ix[i]['Optimal Route Distance'])
+				scores.set_value(i,'Cluster count after KNN step (best route) (10 IT)',best_route_num_clusters)
+			elif(j == 24):
+				scores.set_value(i,'KNN Route 25 Iterations',best_KNN_route)
+				scores.set_value(i,'KNN Time % of Optimal (25 IT)',sum(KNN_times) / scores.ix[i]['Optimal Time sec'])
+				scores.set_value(i,'KNN Distance % of Optimal (25 IT)', best_KNN_dist / scores.ix[i]['Optimal Route Distance'])
+				scores.set_value(i,'Cluster count after KNN step (best route) (25 IT)',best_route_num_clusters)
 	
-	#output to .csv file - appended to file if it exists, otherwise new file created
+	#output to csv file - appended to file if it exists, otherwise new file created
 	if(not os.path.isfile('SalesmanTestResults.csv')):
 		scores.to_csv('SalesmanTestResults.csv', header = col_names)
 	else:
